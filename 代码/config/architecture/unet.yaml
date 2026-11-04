@@ -1,0 +1,53 @@
+# Baseline U-Net 架构配置
+# 模仿 RARE-UNet config/architecture/unet.yaml
+# 适用于 ISIC2018 皮肤病灶分割（2D 图像）
+
+# -- 模型摘要设置 --
+summary:
+  verbose: 0                       # torchinfo 详细程度: 0/1/2
+  col_names: ["input_size", "output_size", "num_params"]
+
+# -- 模型路径 --
+path:
+  _target_: models.unet.UNet2D     # 使用 2D U-Net（皮肤病灶为2D图像）
+
+pp: unet                           # 后处理名称
+name: baseline                    # 模型名称
+
+# -- 核心超参数 --
+depth: 5                          # U-Net 深度（编码器/解码器层数）
+n_filters: 32                     # 初始滤波器数量（32 是轻量级设置）
+dropout: 0.2                      # Dropout 比率
+drop_last: True                   # 最后一层是否 dropout
+
+# 输入/输出通道数（皮肤病灶分割为 1 类：病灶/背景）
+in_channels: 3                    # RGB 图像输入
+out_channels: 1                   # 二分类：病灶 vs 背景
+
+# -- 图像尺寸 --
+# ISIC2018 原始图像: 640x480 ~ 6700x4400
+# 统一 resize 到 256x256（LB-UNet 标准设置）
+img_size: [256, 256]
+
+# == Normalization Layer ==
+# 医学图像常用 InstanceNorm（对每个样本独立归一化）
+norm_type: instance               # 默认使用 InstanceNorm
+# norm_type: batch               # 可选: BatchNorm
+# norm_type: group               # 可选: GroupNorm
+# norm_type: layer               # 可选: LayerNorm
+# norm_type: none                # 可选: 无归一化
+
+# == Activation Function ==
+# LeakyReLU 避免 ReLU 的"死亡神经元"问题
+activation_type: leaky_relu      # 默认使用 LeakyReLU
+# activation_type: relu         # 可选: ReLU
+# activation_type: gelu         # 可选: GELU
+# activation_type: silu         # 可选: SiLU
+# activation_type: swish        # 可选: Swish
+
+# == 编码器/解码器选项 ==
+use_skip_connections: true        # 是否使用跳跃连接
+upsample_mode: "bilinear"         # 上采样模式: bilinear / nearest / conv_transpose
+
+# == 可选：与 DR²-UNet 对齐的字段（仅占位，baseline 不使用） ==
+# Baseline 训练默认只用 `models/unet.py`，不启用轻重分支与路由器。

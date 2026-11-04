@@ -1,0 +1,69 @@
+# 默认训练配置
+# 模仿 RARE-UNet + LB-UNet 的训练设置
+# 针对 ISIC2018 皮肤病灶分割
+
+# -- 训练轮次与批次 --
+num_epochs: 300                   # 训练轮次（LB-UNet 标准设置）
+batch_size: 8                     # 批次大小（LB-UNet 在 11GB 显存下使用）
+num_workers: 4                    # CPU 并行加载数据的工作进程数
+pin_memory: true                  # 锁定页内存，加速数据传输到 GPU
+persistent_workers: true          # 保持 worker 进程，减少重启开销
+prefetch_factor: 2                # 每个 worker 预加载的批次数
+
+# -- 梯度裁剪 --
+grad_clip_norm: 1.0               # 梯度裁剪阈值
+
+# -- 损失函数 --
+# 皮肤病灶分割常用 Dice + BCE 组合
+loss:
+  name: DiceBCE loss              # 组合损失函数
+  params:
+    dice_weight: 1.0               # Dice 损失权重
+    bce_weight: 1.0                # BCE 损失权重
+    smooth: 1e-5                   # 平滑项，防止除零
+
+# -- 优化器 --
+weight_decay: 1e-4                # 权重衰减（稍保守，避免过拟合）
+learning_rate: 1e-3               # 初始学习率（LB-UNet 标准设置）
+
+optimizer:
+  name: AdamW                     # AdamW 优化器
+  params:
+    lr: ${learning_rate}          # 引用上面的学习率
+    weight_decay: ${weight_decay}
+    betas: [0.9, 0.999]           # 默认值
+
+# -- 学习率调度器 --
+# CosineAnnealing: 平滑下降，适合皮肤病灶分割
+scheduler:
+  name: CosineAnnealingLR
+  params:
+    T_max: 50                     # 周期（LB-UNet 设置）
+    eta_min: 1e-6                 # 最小学习率
+    last_epoch: -1
+
+# 备选调度器（可切换使用）
+# scheduler:
+#   name: ReduceLROnPlateau
+#   params:
+#     mode: max                   # 监控 Dice 分数，最大化
+#     factor: 0.5                 # 衰减因子
+#     patience: 10                # 耐心轮数
+#     min_lr: 1e-6
+
+# -- 早停机制 --
+early_stopper:
+  patience: 50                    # 耐心轮数（比 RARE-UNet 保守）
+  verbose: true
+  delta: 1e-4                     # 最小改善量
+  criterion: "dice"              # 监控指标：dice / iou / loss
+
+# -- 验证设置 --
+val_interval: 1                   # 每隔多少轮验证一次
+save_best_only: true              # 只保存最佳模型
+
+# -- 日志输出 --
+print_interval: 20                # 每隔多少 batch 输出一次日志
+
+# -- 混合精度 --
+use_amp: true                     # 启用 AMP 混合精度训练

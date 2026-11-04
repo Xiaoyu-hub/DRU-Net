@@ -1,0 +1,75 @@
+# DR-UNet 架构配置
+# 难度路由 + 轻重双分支（面向资源受限推理的条件计算）
+
+summary:
+  verbose: 0                       # torchinfo 详细程度
+  col_names: ["input_size", "output_size", "num_params"]
+
+# 模型路径
+path:
+  _target_: models.dr_unet.DRUNet
+
+pp: dr_unet                    # 后处理名称
+name: dr_unet                  # 模型名称
+
+# === 基础架构参数（继承自 UNet）===
+depth: 5                        # U-Net 深度
+n_filters: 32                   # 初始滤波器数量（轻量级）
+dropout: 0.2                    # Dropout 比率
+drop_last: True
+
+# 输入/输出
+in_channels: 3                  # RGB 图像
+out_channels: 1                 # 二分类：病灶 vs 背景
+
+# 图像尺寸
+img_size: [256, 256]
+
+# === 归一化与激活 ===
+norm_type: instance             # InstanceNorm（医学图像常用）
+activation_type: leaky_relu    # LeakyReLU
+
+# === 难度路由参数 ===
+# 轻/重双分支配置
+use_light_branch: true          # 是否使用轻分支
+use_heavy_branch: true          # 是否使用重分支
+use_router: true                # 是否使用路由器
+
+# 轻分支配置
+light_branch:
+  channels: [8, 16, 24, 32]   # 轻分支通道数（比主分支少）
+  use_depthwise_conv: false      # 暂时禁用，改用普通卷积调试
+  early_exit: true             # 是否支持早退
+  early_exit_threshold: 0.9    # 早退置信度阈值
+
+# 重分支配置
+heavy_branch:
+  channels: [32, 64, 128, 256] # 重分支通道数
+  use_attention: false          # 是否使用注意力机制
+  use_recurrent: false          # 是否使用循环模块
+
+# Router 配置
+router:
+  use_entropy: true            # 使用预测熵作为输入
+  use_feature: true            # 使用特征作为输入
+  use_confidence: true         # 使用置信度作为输入
+  hidden_dim: 64               # Router 隐藏层维度
+  threshold: 0.3              # 难度阈值（降低以使路由器更敏感）
+
+# === 损失函数权重 ===
+loss_weights:
+  light_weight: 1.0            # 轻分支损失权重
+  heavy_weight: 1.5            # 重分支损失权重
+  router_weight: 1.0          # 路由器损失权重（增加以强调路由学习）
+  consistency_weight: 0.3     # 一致性损失权重
+
+# === 推理模式 ===
+inference:
+  mode: "dynamic"             # 推理模式: "light" / "heavy" / "dynamic"
+  # light: 只使用轻分支
+  # heavy: 只使用重分支（完整路径）
+  # dynamic: 动态路由（默认）
+
+# === 编码器/解码器选项 ===
+use_skip_connections: true
+upsample_mode: "bilinear"

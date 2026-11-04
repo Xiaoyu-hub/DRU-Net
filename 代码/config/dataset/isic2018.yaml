@@ -1,0 +1,43 @@
+# ISIC2018 皮肤病灶分割数据集配置
+# 参考 LB-UNet 的数据集设置
+
+name: isic2018                     # 数据集名称
+
+# 目标形状（resize 后）
+target_shape: [256, 256]          # 与 architecture/unet.yaml 保持一致
+
+# 数据集路径（相对于项目根目录）
+# 用户需要将数据放在这个位置，或者运行时指定绝对路径
+base_path: "../数据集"
+
+# 子目录结构
+images_subdir: "images"            # 图像所在子目录
+labels_subdir: "masks"            # 标签/掩码所在子目录
+
+# 类别设置
+num_classes: 2                     # 类别数：背景(0) + 病灶(1)
+in_channels: 3                     # RGB 3通道
+
+# 数据增强（训练时启用）
+augmentation:
+  enabled: true
+  transforms:
+    - RandomHorizontalFlip:
+        p: 0.5
+    - RandomVerticalFlip:
+        p: 0.5
+    - RandomRotation:
+        degrees: [0, 360]
+        p: 0.5
+    - ColorJitter:
+        brightness: 0.2
+        contrast: 0.2
+        p: 0.3
+
+# 归一化参数（ISIC 标准归一化）
+normalize:
+  mean: [0.485, 0.456, 0.406]     # ImageNet mean
+  std: [0.229, 0.224, 0.225]      # ImageNet std
+
+# 数据划分比例
+train_val_split: 0.8              # 80% 训练，20% 验证

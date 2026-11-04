@@ -1,0 +1,65 @@
+# DR²-UNet 基础配置文件
+# 模仿 RARE-UNet 结构，针对 ISIC2018 皮肤病灶分割
+
+# -- 默认配置继承 --
+# baseline：使用标准 UNet2D
+defaults:
+    - architecture: dr_unet
+    - dataset: isic2018
+    - training: default
+    - _self_
+
+# Hardware settings (单卡模式，适合开发阶段)
+gpu:
+    mode: "single"                # Options: "single", "multi"
+    devices: [0]                  # 使用的 GPU 编号；多卡机器上改成空闲卡的编号
+    backend: "nccl"                # "nccl" for GPU, "gloo" for CPU
+    env: "env://"
+
+# -- Logging settings --
+logging:
+    # 日志级别: critical(50) > error(40) > warning(30) > info(20) > debug(10) > notset(0)
+    disable_all: false            # 是否禁用所有日志
+    file:
+        level: "debug"
+        format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        datefmt: "%Y-%m-%d %H:%M:%S"
+    console:
+        level: "info"
+        format: "[%(levelname)s]: %(message)s"
+        datefmt: "%H:%M:%S"
+    # 调试用：以表格形式打印指标（较慢）
+    ppmat: false
+
+# 混合精度训练 (AMP)
+use_amp: true
+
+# -- 优化器设置 --
+optimization:
+    mode: deterministic            # 确定性模式，保证可复现
+    # use_amp: true                # 可在此开启 AMP
+    # use_channels_last: true      # 通道最后内存格式
+
+# -- WandB 设置 --
+wandb:
+    log: false
+    wandb_project: "DR2-UNet"
+    name: "dr2-unet-isic2018"     # 实验名称
+    group: "isic2018"             # 按数据集分组
+    tags:
+        - "isic2018"
+        - "skin-lesion"
+        - "resource-constrained"
+
+# -- 随机种子 --
+seed: 42                          # 保证可复现
+
+# -- 模型保存路径 --
+trained_models:
+    base_dir: "trained_models"
+
+# -- 快速调试：训练子集 --
+dataset_subset_size: null         # null 表示使用全部数据
+
+# -- 从检查点恢复训练 --
+resume_checkpoint: null
